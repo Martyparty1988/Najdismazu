@@ -4,6 +4,126 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Najdi smažák</title>
+    
+    <!-- PWA Icon and Manifest Generator -->
+    <script>
+        (function() {
+            /**
+             * Draws a syringe icon on a canvas.
+             * @param {number} size - The width and height of the canvas.
+             * @returns {string} - A data URL for the generated PNG image.
+             */
+            function drawIcon(size) {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // Background
+                ctx.fillStyle = '#0a192f';
+                ctx.fillRect(0, 0, size, size);
+
+                ctx.save();
+                // Center and rotate the canvas for easier drawing
+                ctx.translate(size / 2, size / 2);
+                ctx.rotate(-45 * Math.PI / 180);
+
+                const scale = size / 512;
+                
+                // Syringe Body
+                const bodyWidth = 60 * scale;
+                const bodyHeight = 250 * scale;
+                const bodyX = -bodyWidth / 2;
+                const bodyY = -bodyHeight / 2;
+
+                ctx.fillStyle = '#e2e8f0';
+                ctx.strokeStyle = '#4a5568';
+                ctx.lineWidth = 8 * scale;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                ctx.beginPath();
+                ctx.roundRect(bodyX, bodyY, bodyWidth, bodyHeight, 15 * scale);
+                ctx.stroke();
+                ctx.fill();
+
+                // Liquid inside
+                const liquidGradient = ctx.createLinearGradient(bodyX, bodyY, bodyX, bodyY + bodyHeight);
+                liquidGradient.addColorStop(0, '#00f6ff');
+                liquidGradient.addColorStop(1, '#00b8d4');
+                ctx.fillStyle = liquidGradient;
+                ctx.beginPath();
+                ctx.roundRect(bodyX + 5 * scale, bodyY + 100 * scale, bodyWidth - 10 * scale, bodyHeight - 105 * scale, 10 * scale);
+                ctx.fill();
+
+                // Plunger
+                const plungerY = bodyY - 100 * scale;
+                ctx.fillStyle = '#718096';
+                ctx.strokeStyle = '#2d3748';
+                ctx.lineWidth = 4 * scale;
+                // Plunger top
+                ctx.beginPath();
+                ctx.roundRect(bodyX - 20 * scale, plungerY - 30 * scale, bodyWidth + 40 * scale, 30 * scale, 10 * scale);
+                ctx.fill();
+                ctx.stroke();
+                // Plunger shaft
+                ctx.beginPath();
+                ctx.fillRect(bodyX + (bodyWidth / 2) - 5 * scale, plungerY, 10 * scale, 100 * scale);
+                
+                // Needle
+                const needleBaseY = bodyY + bodyHeight;
+                ctx.fillStyle = '#c0c0c0'; // Silver
+                ctx.strokeStyle = '#718096';
+                ctx.lineWidth = 2 * scale;
+                // Needle base
+                ctx.beginPath();
+                ctx.fillRect(bodyX + 10 * scale, needleBaseY, bodyWidth - 20 * scale, 20 * scale);
+                // Needle shaft
+                ctx.beginPath();
+                ctx.moveTo(0, needleBaseY + 20 * scale);
+                ctx.lineTo(0, needleBaseY + 140 * scale);
+                ctx.strokeStyle = '#c0c0c0';
+                ctx.lineWidth = 6 * scale;
+                ctx.stroke();
+
+                ctx.restore();
+                return canvas.toDataURL('image/png');
+            }
+
+            const icon192 = drawIcon(192);
+            const icon512 = drawIcon(512);
+            const favicon = drawIcon(32);
+            const themeColor = '#0a192f';
+
+            // Create manifest object
+            const manifest = {
+                name: "Najdi smažák",
+                short_name: "Smažák",
+                start_url: ".",
+                display: "standalone",
+                background_color: themeColor,
+                theme_color: themeColor,
+                icons: [
+                    { src: icon192, type: "image/png", sizes: "192x192" },
+                    { src: icon512, type: "image/png", sizes: "512x512" }
+                ]
+            };
+
+            // Create blob from manifest
+            const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+            const manifestURL = URL.createObjectURL(blob);
+
+            // Inject links into the head
+            document.head.insertAdjacentHTML('beforeend', `
+                <link rel="icon" href="${favicon}">
+                <link rel="apple-touch-icon" href="${icon192}">
+                <link rel="manifest" href="${manifestURL}">
+                <meta name="theme-color" content="${themeColor}">
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+            `);
+        })();
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,7 +195,7 @@
         .flash-red { animation: red-flash 0.5s ease-out; }
         @keyframes red-flash { 0%, 100% { box-shadow: none; } 50% { box-shadow: inset 0 0 100px 50px rgba(248, 113, 113, 0.6); } }
         @media (prefers-reduced-motion: reduce) {
-          .scanner-pulse, .blip, .btn, .threat-pill, .flash-red { animation: none !important; transition-duration: 0.01ms !important; }
+          .scanner-pulse, .blip, .btn, .threat-pill, .flash-red, .ai-modal-loader { animation: none !important; transition-duration: 0.01ms !important; }
         }
     </style>
 </head>
@@ -103,12 +223,12 @@
             </div>
         </div>
 
-        <button id="scan-button" class="btn btn-scan w-full p-4 rounded-full text-xl font-orbitron font-bold text-black tracking-wider">ŠLEHNOUT DÁVKU</button>
+        <button id="scan-button" class="btn btn-scan w-full p-4 rounded-full text-xl font-orbitron font-bold text-black tracking-wider" aria-label="Najdi nejbližšího smážu">Najdi nejbližšího smážu</button>
 
         <div class="glass-panel p-5">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-orbitron text-lg">ROZBOR MATROŠE</h3>
-                <button id="profile-button" class="btn btn-profile px-3 py-1 rounded-full text-xs font-orbitron font-bold text-black">KDO JE TEN SMAŽKA?</button>
+                <button id="profile-button" class="btn btn-profile px-3 py-1 rounded-full text-xs font-orbitron font-bold text-black">Kdo je ten smažka?</button>
             </div>
             <div class="flex items-center space-x-4 mb-4">
                 <div class="w-20 h-20 rounded-full border-2 border-cyan-400 shadow-lg flex-shrink-0" style="box-shadow: 0 0 15px var(--glow-blue);">
@@ -128,7 +248,7 @@
                     <div class="glass-panel p-2 rounded-lg"><div id="stat-bpm" class="font-bold text-base text-yellow-400">82</div><div>TEPÍK</div></div>
                     <div class="glass-panel p-2 rounded-lg"><div id="stat-risk" class="font-bold text-base text-yellow-400">18%</div><div class="leading-tight">ŠANCE ŽE RUPNE ŽÍLA</div></div>
                 </div>
-                <button id="ai-analysis-button" class="btn btn-ai w-full p-3 mt-2 rounded-full text-md font-orbitron font-bold text-black tracking-wider hidden">✨ PORADIT SE S DEALEREM</button>
+                <button id="ai-analysis-button" class="btn btn-ai w-full p-3 mt-2 rounded-full text-md font-orbitron font-bold text-black tracking-wider hidden">✨ Poradna od dealerů</button>
             </div>
         </div>
 
@@ -138,9 +258,9 @@
         </div>
     </div>
 
-    <div id="ai-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden opacity-0">
+    <div id="ai-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden opacity-0" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="glass-panel w-full max-w-lg p-6 relative">
-            <button id="modal-close-button" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+            <button id="modal-close-button" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors" aria-label="Zavřít okno">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
             </button>
             <h3 id="modal-title" class="font-orbitron text-xl mb-4 text-cyan-300"></h3>
@@ -173,8 +293,9 @@
                 subjectAvatarText: document.getElementById('subject-avatar-text'),
             };
 
-            let isScanning = false;
+            let isProcessing = false;
             let currentThreatIndex = 0;
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             
             const subjects = [
                 { name: 'Šlehař Delta-Piko', avatar: 'ŠLEHAŘ' },
@@ -212,6 +333,14 @@
 
             const random = (min, max) => Math.random() * (max - min) + min;
 
+            function debounce(func, delay) {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), delay);
+                };
+            }
+
             function getRandomLogPhrase() {
                 let availablePhrases = logPhrases.filter(p => p !== lastUsedLog);
                 let phrase = availablePhrases[Math.floor(Math.random() * availablePhrases.length)];
@@ -219,7 +348,7 @@
 
                 return phrase
                     .replace('{BPM}', elements.statBpm.textContent)
-                    .replace('{RISK}', elements.statRisk.textContent);
+                    .replace('{RISK}', elements.statRisk.textContent.replace('%',''));
             }
 
             function addLogEntry(message, level = 'info') {
@@ -238,18 +367,26 @@
             }
 
             function createBlips() {
+                if (prefersReducedMotion) return;
                 const container = elements.scannerContainer;
-                const blipCount = Math.floor(random(2, 5));
-                container.querySelectorAll('.blip').forEach(b => b.remove());
+                const maxBlips = 12;
+                let existingBlips = container.querySelectorAll('.blip').length;
+                if (existingBlips > maxBlips) {
+                    for(let i = 0; i < existingBlips - maxBlips; i++) {
+                        if(container.querySelector('.blip')) container.querySelector('.blip').remove();
+                    }
+                }
+
+                const blipCount = Math.floor(random(6, 10));
                 for (let i = 0; i < blipCount; i++) {
                     const blip = document.createElement('div');
                     blip.className = 'blip';
-                    const size = random(6, 15);
+                    const size = random(6, 14);
                     blip.style.width = `${size}px`;
                     blip.style.height = `${size}px`;
                     blip.style.left = `${random(10, 90)}%`;
                     blip.style.top = `${random(10, 90)}%`;
-                    blip.style.animationDelay = `${random(0, 2)}s`;
+                    blip.style.animationDelay = `${random(0, 3)}s`;
                     container.appendChild(blip);
                 }
             }
@@ -261,7 +398,7 @@
             }
 
             function updateThreatLevel() {
-                if (isScanning) return;
+                if (isProcessing) return;
                 currentThreatIndex = (currentThreatIndex + 1) % threatLevels.length;
                 const newThreat = threatLevels[currentThreatIndex];
                 
@@ -276,7 +413,7 @@
                 const logLevels = ['info', 'warn', 'error', 'critical'];
                 addLogEntry(`⚠️ Hrozba: ${newThreat.name}`, logLevels[newThreat.level]);
 
-                if (newThreat.level === 3) {
+                if (newThreat.level === 3 && !prefersReducedMotion) {
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                     elements.scannerVisual.classList.add('flash-red');
                     setTimeout(() => elements.scannerVisual.classList.remove('flash-red'), 500);
@@ -284,10 +421,12 @@
             }
 
             function runScanSequence() {
-                if (isScanning) return;
-                isScanning = true;
+                if (isProcessing) return;
+                isProcessing = true;
                 elements.scanButton.disabled = true;
-                elements.scannerContainer.classList.add('animate-pulse-fast');
+                if (!prefersReducedMotion) {
+                    elements.scannerContainer.classList.add('animate-pulse-fast');
+                }
                 
                 let counter = 0;
                 const states = [
@@ -303,7 +442,7 @@
                     elements.scannerStatus.textContent = state.status;
                     elements.scannerSubtext.textContent = state.subtext;
                     elements.statBpm.textContent = Math.floor(random(70, 160));
-                    elements.statRisk.textContent = `${Math.floor(random(10, 95))}`;
+                    elements.statRisk.textContent = `${Math.floor(random(10, 95))}%`;
                     addRandomLog('info');
                     
                     counter++;
@@ -312,12 +451,15 @@
                         elements.scannerStatus.textContent = 'HOTOVEJ NA ŠLEH';
                         elements.scannerSubtext.textContent = 'Čekám na další lajnu';
                         elements.scanButton.disabled = false;
-                        isScanning = false;
-                        elements.scannerContainer.classList.remove('animate-pulse-fast');
-                        addLogEntry('Dávka šlehnutá, systém ready.', 'info');
+                        isProcessing = false;
+                        if (!prefersReducedMotion) {
+                           elements.scannerContainer.classList.remove('animate-pulse-fast');
+                        }
+                        addLogEntry('Hledání dokončeno, systém ready.', 'info');
                         changeSubject();
+                        elements.aiAnalysisButton.classList.toggle('hidden', threatLevels[currentThreatIndex].level < 2);
                     }
-                }, 1500);
+                }, 1125); // 4.5s total duration
             }
 
             function showModal(title) {
@@ -335,6 +477,7 @@
 
             async function callGeminiAPI(prompt) {
                 const apiKey = ""; // Klíč je doplněn automaticky
+                if (!apiKey) throw new Error("Chybí klíč od dealera.");
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -347,6 +490,8 @@
             }
 
             async function getThreatAnalysis() {
+                if (isProcessing) return;
+                isProcessing = true;
                 addLogEntry('Ptám se dealera na radu...', 'ai');
                 showModal('PORADNA OD DEALERŮ');
                 const currentThreat = threatLevels[currentThreatIndex];
@@ -355,20 +500,23 @@
                 - Smažka: '${subjectName}'
                 - Stav: '${currentThreat.name}'
                 - Tepík: ${elements.statBpm.textContent} BPM
-                - Šance že rupne žíla: ${elements.statRisk.textContent}%
+                - Šance že rupne žíla: ${elements.statRisk.textContent}
                 Dej mu krátkou, drsnou a vtipnou radu (max 3 věty), co má dělat. Používej slang (piko, fízl, lajna, šleh, matroš, na šrot). Odpověz česky.`;
                 try {
                     elements.modalContent.innerText = await callGeminiAPI(prompt);
                     addLogEntry('Dealer poslal zprávu.', 'ai');
                 } catch (error) {
-                    elements.modalContent.innerText = `Chyba: ${error.message}. Tep máš jak po trojité lajně, dej si pauzu, nebo tě klepne. Doporučení: nalej se colou a nechoď ven.`;
-                    addLogEntry('Spojení s dealerem selhalo.', 'error');
+                    elements.modalContent.innerText = `Tep máš jak po trojité lajně, dej si pauzu, nebo tě klepne. Doporučení: nalej se colou a nechoď ven.`;
+                    addLogEntry('Spojení s dealerem selhalo (lokální simulace).', 'error');
                 } finally {
                     elements.modalLoader.classList.add('hidden');
+                    isProcessing = false;
                 }
             }
             
             async function getSubjectProfile() {
+                if (isProcessing) return;
+                isProcessing = true;
                 addLogEntry('Vytahuju info o smažce...', 'profile');
                 const subjectName = elements.subjectName.textContent;
                 showModal(`KDO JE TEN SMAŽKA: ${subjectName.toUpperCase()}`);
@@ -383,18 +531,24 @@
                     elements.modalContent.innerHTML = profileText.replace(/\n/g, '<br><br>');
                     addLogEntry('Profil smažky načten.', 'profile');
                 } catch (error) {
-                    elements.modalContent.innerText = `Chyba: ${error.message}. Víme jen, že jeho původ je uliční varna v Žižkově. Jeho hlavní schopnost je, že pozná feťáka na 200 metrů. Slabina? Bez dávky nevstane z postele.`;
-                    addLogEntry('Nepodařilo se najít info.', 'error');
+                    elements.modalContent.innerHTML = `<b>Původ:</b> Uliční varna v Žižkově.<br><br><b>Schopnosti:</b> Pozná feťáka na 200 metrů a umí sehnat cokoliv za půlku ledviny.<br><br><b>Slabiny:</b> Bez dávky nevstane z postele a bojí se holubů.`;
+                    addLogEntry('Nepodařilo se najít info (lokální simulace).', 'error');
                 } finally {
                     elements.modalLoader.classList.add('hidden');
+                    isProcessing = false;
                 }
             }
+            
+            const debouncedScan = debounce(runScanSequence, 600);
+            const debouncedAnalysis = debounce(getThreatAnalysis, 600);
+            const debouncedProfile = debounce(getSubjectProfile, 600);
 
-            elements.scanButton.addEventListener('click', runScanSequence);
-            elements.aiAnalysisButton.addEventListener('click', getThreatAnalysis);
-            elements.profileButton.addEventListener('click', getSubjectProfile);
+            elements.scanButton.addEventListener('click', debouncedScan);
+            elements.aiAnalysisButton.addEventListener('click', debouncedAnalysis);
+            elements.profileButton.addEventListener('click', debouncedProfile);
             elements.modalCloseButton.addEventListener('click', hideModal);
             elements.aiModal.addEventListener('click', (e) => { if(e.target === elements.aiModal) hideModal(); });
+            document.addEventListener('keydown', (e) => { if (e.key === "Escape") hideModal(); });
 
             function init() {
                 createBlips();
