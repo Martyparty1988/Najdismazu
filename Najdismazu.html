@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Najdi smažák</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient-start: #0a192f; --bg-gradient-mid: #0d4e5a; --bg-gradient-end: #4a0e4e;
+            --accent-blue: #00f6ff; --accent-purple: #a855f7; --accent-yellow: #facc15;
+            --accent-orange: #fb923c; --accent-red: #f87171; --accent-green: #4ade80;
+            --text-primary: #e2e8f0; --text-secondary: #94a3b8;
+            --glass-bg: rgba(28, 37, 61, 0.6); --glass-border: rgba(100, 116, 139, 0.25);
+            --glow-blue: rgba(0, 246, 255, 0.35); --glow-purple: rgba(168, 85, 247, 0.4);
+            --glow-yellow: rgba(250, 204, 21, 0.4); --glow-red: rgba(248, 113, 113, 0.5);
+            --safe-area-top: env(safe-area-inset-top); --safe-area-bottom: env(safe-area-inset-bottom);
+        }
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background: linear-gradient(160deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+        }
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800"><rect fill="%230a192f" width="800" height="800"/><g fill-opacity="0.1"><circle fill="%230d4e5a" cx="400" cy="400" r="600"/><circle fill="%231d3b5f" cx="400" cy="400" r="500"/><circle fill="%230a192f" cx="400" cy="400" r="300"/><circle fill="%231d3b5f" cx="400" cy="400" r="200"/><circle fill="%234a0e4e" cx="400" cy="400" r="100"/></g></svg>');
+            opacity: 0.05; pointer-events: none; z-index: -1;
+        }
+        h1, h2, h3, .font-orbitron { font-family: 'Orbitron', sans-serif; text-shadow: 0 0 8px var(--glow-blue); }
+        .glass-panel {
+            background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        }
+        .scanner-pulse {
+            position: absolute; border-radius: 50%; border: 1px solid var(--accent-blue);
+            animation: pulse 4s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 25px 5px var(--glow-blue), inset 0 0 20px 3px var(--glow-blue);
+        }
+        .scanner-pulse:nth-child(2) { animation-delay: 1.33s; }
+        .scanner-pulse:nth-child(3) { animation-delay: 2.66s; }
+        .animate-pulse-fast .scanner-pulse { animation-duration: 1.5s; }
+        @keyframes pulse { 0% { transform: scale(0.1); opacity: 0; } 70% { opacity: 0.5; } 100% { transform: scale(1); opacity: 0; } }
+        .blip {
+            position: absolute; border-radius: 50%; background-color: var(--accent-blue);
+            box-shadow: 0 0 12px 3px var(--glow-blue); animation: fade-in-out 3.5s infinite alternate ease-in-out; opacity: 0;
+        }
+        @keyframes fade-in-out { 0%, 100% { opacity: 0; transform: scale(0.4); } 50% { opacity: 0.8; transform: scale(1); } }
+        .btn { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease; }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); }
+        .btn:active:not(:disabled) { transform: scale(0.98); }
+        .btn:disabled { cursor: not-allowed; filter: grayscale(80%); opacity: 0.7; }
+        .btn-scan { background: linear-gradient(45deg, var(--accent-blue), var(--accent-purple)); box-shadow: 0 0 25px 5px var(--glow-blue); }
+        .btn-scan:hover:not(:disabled) { box-shadow: 0 0 35px 8px var(--glow-purple); }
+        .btn-scan:active:not(:disabled) { box-shadow: 0 0 20px 2px var(--glow-purple); }
+        .btn-ai { background: linear-gradient(45deg, var(--accent-yellow), var(--accent-orange)); box-shadow: 0 0 20px 4px var(--glow-yellow); }
+        .btn-ai:hover:not(:disabled) { box-shadow: 0 0 30px 7px var(--glow-yellow); }
+        .btn-profile { background: linear-gradient(45deg, var(--accent-blue), #38bdf8); box-shadow: 0 0 20px 4px var(--glow-blue); }
+        .btn-profile:hover:not(:disabled) { box-shadow: 0 0 30px 7px var(--glow-blue); }
+        .threat-pill { transition: all 0.5s ease; }
+        .threat-low { background-color: var(--accent-green); box-shadow: 0 0 12px var(--accent-green); }
+        .threat-medium { background-color: var(--accent-yellow); box-shadow: 0 0 12px var(--accent-yellow); }
+        .threat-high { background-color: var(--accent-orange); box-shadow: 0 0 12px var(--accent-orange); }
+        .threat-critical { background-color: var(--accent-red); box-shadow: 0 0 15px var(--glow-red); }
+        #ai-modal { transition: opacity 0.3s ease; }
+        .ai-modal-loader {
+            width: 50px; height: 50px; border: 4px solid var(--glass-border);
+            border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .flash-red { animation: red-flash 0.5s ease-out; }
+        @keyframes red-flash { 0%, 100% { box-shadow: none; } 50% { box-shadow: inset 0 0 100px 50px rgba(248, 113, 113, 0.6); } }
+        @media (prefers-reduced-motion: reduce) {
+          .scanner-pulse, .blip, .btn, .threat-pill, .flash-red { animation: none !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen p-4 pt-[calc(var(--safe-area-top)+1rem)] pb-[calc(var(--safe-area-bottom)+1rem)]">
+
+    <div class="max-w-md mx-auto flex flex-col space-y-6">
+        
+        <h1 class="font-orbitron text-3xl text-center text-cyan-300">Najdi smažák</h1>
+
+        <header class="flex justify-between items-center px-2 z-10">
+            <div id="threat-level-pill" class="threat-pill threat-low text-black font-bold text-xs md:text-sm py-1.5 px-4 rounded-full font-orbitron text-center">Na pohodu, jen trošku sjetý</div>
+        </header>
+
+        <div class="relative w-full aspect-square flex items-center justify-center my-4">
+            <div id="scanner-visual" class="absolute w-full h-full rounded-full">
+                <div id="scanner-container" class="absolute w-full h-full">
+                    <div class="scanner-pulse w-full h-full"></div>
+                    <div class="scanner-pulse w-full h-full"></div>
+                    <div class="scanner-pulse w-full h-full"></div>
+                </div>
+            </div>
+            <div class="font-orbitron text-center z-10">
+                <div id="scanner-status" class="text-3xl font-bold text-cyan-300 transition-all" style="text-shadow: 0 0 15px var(--glow-blue);">HOTOVEJ NA ŠLEH</div>
+                <div id="scanner-subtext" class="text-sm text-slate-400 transition-all">Čekám na lajnu</div>
+            </div>
+        </div>
+
+        <button id="scan-button" class="btn btn-scan w-full p-4 rounded-full text-xl font-orbitron font-bold text-black tracking-wider">ŠLEHNOUT DÁVKU</button>
+
+        <div class="glass-panel p-5">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-orbitron text-lg">ROZBOR MATROŠE</h3>
+                <button id="profile-button" class="btn btn-profile px-3 py-1 rounded-full text-xs font-orbitron font-bold text-black">KDO JE TEN SMAŽKA?</button>
+            </div>
+            <div class="flex items-center space-x-4 mb-4">
+                <div class="w-20 h-20 rounded-full border-2 border-cyan-400 shadow-lg flex-shrink-0" style="box-shadow: 0 0 15px var(--glow-blue);">
+                    <svg id="subject-avatar" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="48" stroke="var(--accent-blue)" stroke-width="2"/><path d="M50 30C58.2843 30 65 36.7157 65 45C65 53.2843 58.2843 60 50 60C41.7157 60 35 53.2843 35 45C35 36.7157 41.7157 30 50 30Z" stroke="var(--accent-blue)" stroke-width="2"/><path d="M25 85C25 73.9543 36.1929 65 50 65C63.8071 65 75 73.9543 75 85" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round"/>
+                        <text id="subject-avatar-text" x="50" y="52" font-family="Orbitron, sans-serif" font-size="20" fill="var(--accent-blue)" text-anchor="middle" dominant-baseline="middle">ŠLEHAŘ</text>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <div id="subject-name" class="font-bold text-xl">Šlehař Delta-Piko</div>
+                    <div id="target-status" class="text-sm text-slate-400">Stav: Relativně v klidu</div>
+                    <div id="target-threat-pill" class="mt-2 threat-pill threat-low text-black text-xs font-bold py-1 px-3 rounded-full inline-block text-center">Na pohodu, jen trošku sjetý</div>
+                </div>
+            </div>
+            <div class="space-y-2">
+                <div class="grid grid-cols-2 gap-2 text-center text-xs">
+                    <div class="glass-panel p-2 rounded-lg"><div id="stat-bpm" class="font-bold text-base text-yellow-400">82</div><div>TEPÍK</div></div>
+                    <div class="glass-panel p-2 rounded-lg"><div id="stat-risk" class="font-bold text-base text-yellow-400">18%</div><div class="leading-tight">ŠANCE ŽE RUPNE ŽÍLA</div></div>
+                </div>
+                <button id="ai-analysis-button" class="btn btn-ai w-full p-3 mt-2 rounded-full text-md font-orbitron font-bold text-black tracking-wider hidden">✨ PORADIT SE S DEALEREM</button>
+            </div>
+        </div>
+
+        <div class="glass-panel p-5">
+            <h3 class="font-orbitron text-lg mb-4">ZÁPISKY ZE DNA</h3>
+            <ul id="activity-log" class="space-y-3 text-sm h-40 overflow-y-auto pr-2"></ul>
+        </div>
+    </div>
+
+    <div id="ai-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden opacity-0">
+        <div class="glass-panel w-full max-w-lg p-6 relative">
+            <button id="modal-close-button" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+            </button>
+            <h3 id="modal-title" class="font-orbitron text-xl mb-4 text-cyan-300"></h3>
+            <div id="modal-content" class="text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto"></div>
+            <div id="modal-loader" class="w-full flex justify-center items-center py-8 hidden"><div class="ai-modal-loader"></div></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const elements = {
+                scannerVisual: document.getElementById('scanner-visual'),
+                scannerContainer: document.getElementById('scanner-container'),
+                threatPill: document.getElementById('threat-level-pill'),
+                scanButton: document.getElementById('scan-button'),
+                scannerStatus: document.getElementById('scanner-status'),
+                scannerSubtext: document.getElementById('scanner-subtext'),
+                activityLog: document.getElementById('activity-log'),
+                statBpm: document.getElementById('stat-bpm'),
+                statRisk: document.getElementById('stat-risk'),
+                aiAnalysisButton: document.getElementById('ai-analysis-button'),
+                profileButton: document.getElementById('profile-button'),
+                aiModal: document.getElementById('ai-modal'),
+                modalTitle: document.getElementById('modal-title'),
+                modalContent: document.getElementById('modal-content'),
+                modalLoader: document.getElementById('modal-loader'),
+                modalCloseButton: document.getElementById('modal-close-button'),
+                targetThreatPill: document.getElementById('target-threat-pill'),
+                subjectName: document.getElementById('subject-name'),
+                subjectAvatarText: document.getElementById('subject-avatar-text'),
+            };
+
+            let isScanning = false;
+            let currentThreatIndex = 0;
+            
+            const subjects = [
+                { name: 'Šlehař Delta-Piko', avatar: 'ŠLEHAŘ' },
+                { name: 'Hulič Zubatá Žárovka', avatar: 'HULIČ' },
+                { name: 'Sajrajtový Špiritus X', avatar: 'SAJRAJT' },
+                { name: 'Pervitínový Fantom', avatar: 'FANTOM' },
+                { name: 'Metloš Level-7', avatar: 'METLOŠ' },
+                { name: 'Čichač Trubek Omega', avatar: 'ČICHAČ' },
+                { name: 'Vařič Ketaminu z Kolbenky', avatar: 'VAŘIČ' },
+                { name: 'Šňupač Okenního Tmelu', avatar: 'ŠŇUPAČ' }
+            ];
+
+            const threatLevels = [
+                { name: 'Na pohodu, jen trošku sjetý', class: 'threat-low', level: 0 },
+                { name: 'Půl dávky v žíle', class: 'threat-medium', level: 1 },
+                { name: 'Na šrot', class: 'threat-high', level: 2 },
+                { name: 'Totál Overdose', class: 'threat-critical', level: 3 }
+            ];
+
+            const logPhrases = [
+                "Vařím dávku, drž se", "Šlehám vrstvičku I", "Šlehám vrstvičku II", "Míchám s acetonem… hotovo",
+                "Přepaluju trubky", "Dealer hlásí, že zboží jede", "Fízlové se motaj poblíž", "Krevák ti letí, tepík: {BPM}",
+                "Piko čistota 78 %, dobrý", "Piko čistota 23 %, bída", "Riziko prasknutí žíly: {RISK}%", "Schovej se, jede měšťák",
+                "Šňupu data z radaru", "Balím dávku do igeliťáku", "Načítám nové lajny…", "Tep ti lítá jak kolotoč",
+                "Čekám na dodávku z Polska", "Zapalovač ready", "Sjetý, ale pod kontrolou", "Kámo, máš roztažený zorničky",
+                "Tvůj tepík: {BPM}, to je cajk", "Tvůj tepík: {BPM}, už jsi přestřelil", "Prasklo tělo na šrot",
+                "Dealer offline, improvizuj", "Vařím ketu v garáži", "Bacha, perník se přepaluje", "Někdo ťuká na dveře",
+                "Vysyp prášek na zrcadlo", "Připravuju stříkačku", "Na půl mozku v pohodě", "Někdo šlohnul lžičku",
+                "Matroš ready, šňupej", "Schovej se do skříně", "Prásknul ses do žíly", "Prodávám matroš na rohu",
+                "Vdechni, drž, vydechni", "Vysoký tlak, kámo", "Fízlové na střeše", "Stříkačka dezinfikovaná",
+                "Piko se vaří, nehýbej se", "Šlehni si opatrně", "Kámo, jsi bílej jak stěna"
+            ];
+            
+            let lastUsedLog = '';
+
+            const random = (min, max) => Math.random() * (max - min) + min;
+
+            function getRandomLogPhrase() {
+                let availablePhrases = logPhrases.filter(p => p !== lastUsedLog);
+                let phrase = availablePhrases[Math.floor(Math.random() * availablePhrases.length)];
+                lastUsedLog = phrase;
+
+                return phrase
+                    .replace('{BPM}', elements.statBpm.textContent)
+                    .replace('{RISK}', elements.statRisk.textContent);
+            }
+
+            function addLogEntry(message, level = 'info') {
+                const li = document.createElement('li');
+                li.className = 'flex items-center space-x-3 border-t border-slate-700/50 pt-3';
+                const dotColors = { info: 'bg-green-400', warn: 'bg-yellow-400', error: 'bg-orange-400', critical: 'bg-red-400', ai: 'bg-purple-400', profile: 'bg-blue-400' };
+                const dotShadows = { info: 'var(--accent-green)', warn: 'var(--accent-yellow)', error: 'var(--accent-orange)', critical: 'var(--accent-red)', ai: 'var(--glow-purple)', profile: 'var(--glow-blue)' };
+                const time = new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                li.innerHTML = `<span class="w-2 h-2 rounded-full ${dotColors[level]} flex-shrink-0" style="box-shadow: 0 0 5px ${dotShadows[level]}"></span><span class="text-slate-400">${time}</span><span class="flex-1">${message}</span>`;
+                elements.activityLog.prepend(li);
+                if (elements.activityLog.children.length > 15) { elements.activityLog.lastElementChild.remove(); }
+            }
+            
+            function addRandomLog(level = 'info') {
+                addLogEntry(getRandomLogPhrase(), level);
+            }
+
+            function createBlips() {
+                const container = elements.scannerContainer;
+                const blipCount = Math.floor(random(2, 5));
+                container.querySelectorAll('.blip').forEach(b => b.remove());
+                for (let i = 0; i < blipCount; i++) {
+                    const blip = document.createElement('div');
+                    blip.className = 'blip';
+                    const size = random(6, 15);
+                    blip.style.width = `${size}px`;
+                    blip.style.height = `${size}px`;
+                    blip.style.left = `${random(10, 90)}%`;
+                    blip.style.top = `${random(10, 90)}%`;
+                    blip.style.animationDelay = `${random(0, 2)}s`;
+                    container.appendChild(blip);
+                }
+            }
+
+            function changeSubject() {
+                const newSubject = subjects[Math.floor(Math.random() * subjects.length)];
+                elements.subjectName.textContent = newSubject.name;
+                elements.subjectAvatarText.textContent = newSubject.avatar;
+            }
+
+            function updateThreatLevel() {
+                if (isScanning) return;
+                currentThreatIndex = (currentThreatIndex + 1) % threatLevels.length;
+                const newThreat = threatLevels[currentThreatIndex];
+                
+                elements.threatPill.textContent = newThreat.name;
+                elements.threatPill.className = `threat-pill text-black font-bold text-xs md:text-sm py-1.5 px-4 rounded-full font-orbitron text-center ${newThreat.class}`;
+                
+                elements.targetThreatPill.textContent = newThreat.name;
+                elements.targetThreatPill.className = `mt-2 threat-pill text-black text-xs font-bold py-1 px-3 rounded-full inline-block text-center ${newThreat.class}`;
+                
+                elements.aiAnalysisButton.classList.toggle('hidden', newThreat.level < 2);
+                
+                const logLevels = ['info', 'warn', 'error', 'critical'];
+                addLogEntry(`⚠️ Hrozba: ${newThreat.name}`, logLevels[newThreat.level]);
+
+                if (newThreat.level === 3) {
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    elements.scannerVisual.classList.add('flash-red');
+                    setTimeout(() => elements.scannerVisual.classList.remove('flash-red'), 500);
+                }
+            }
+
+            function runScanSequence() {
+                if (isScanning) return;
+                isScanning = true;
+                elements.scanButton.disabled = true;
+                elements.scannerContainer.classList.add('animate-pulse-fast');
+                
+                let counter = 0;
+                const states = [
+                    { status: 'VAŘÍM DÁVKU...', subtext: 'Míchám to s toluenem...' },
+                    { status: 'PŘEPALUJU TRUBKY', subtext: 'Zapalovač skoro hoří...' },
+                    { status: 'ŠŇUPU DATA', subtext: 'Dobrý matroš...' },
+                    { status: 'HOTOVO', subtext: 'Čistota 98%, kámo!' }
+                ];
+
+                addRandomLog('info');
+                const scanInterval = setInterval(() => {
+                    const state = states[counter];
+                    elements.scannerStatus.textContent = state.status;
+                    elements.scannerSubtext.textContent = state.subtext;
+                    elements.statBpm.textContent = Math.floor(random(70, 160));
+                    elements.statRisk.textContent = `${Math.floor(random(10, 95))}`;
+                    addRandomLog('info');
+                    
+                    counter++;
+                    if (counter >= states.length) {
+                        clearInterval(scanInterval);
+                        elements.scannerStatus.textContent = 'HOTOVEJ NA ŠLEH';
+                        elements.scannerSubtext.textContent = 'Čekám na další lajnu';
+                        elements.scanButton.disabled = false;
+                        isScanning = false;
+                        elements.scannerContainer.classList.remove('animate-pulse-fast');
+                        addLogEntry('Dávka šlehnutá, systém ready.', 'info');
+                        changeSubject();
+                    }
+                }, 1500);
+            }
+
+            function showModal(title) {
+                elements.modalTitle.textContent = title;
+                elements.modalContent.innerHTML = '';
+                elements.modalLoader.classList.remove('hidden');
+                elements.aiModal.classList.remove('hidden');
+                setTimeout(() => elements.aiModal.style.opacity = '1', 10);
+            }
+
+            function hideModal() {
+                elements.aiModal.style.opacity = '0';
+                setTimeout(() => elements.aiModal.classList.add('hidden'), 300);
+            }
+
+            async function callGeminiAPI(prompt) {
+                const apiKey = ""; // Klíč je doplněn automaticky
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                if (!response.ok) throw new Error(`Dealer je offline nebo má zátah (chyba ${response.status})`);
+                const result = await response.json();
+                return result.candidates[0].content.parts[0].text;
+            }
+
+            async function getThreatAnalysis() {
+                addLogEntry('Ptám se dealera na radu...', 'ai');
+                showModal('PORADNA OD DEALERŮ');
+                const currentThreat = threatLevels[currentThreatIndex];
+                const subjectName = elements.subjectName.textContent;
+                const prompt = `Jsi starý, ošlehaný pouliční dealer. Tvojí specialitou je pervitin a znáš všechny smažky v okolí. Tvůj "radar" (zákazník) ti hlásí stav jednoho z nich.
+                - Smažka: '${subjectName}'
+                - Stav: '${currentThreat.name}'
+                - Tepík: ${elements.statBpm.textContent} BPM
+                - Šance že rupne žíla: ${elements.statRisk.textContent}%
+                Dej mu krátkou, drsnou a vtipnou radu (max 3 věty), co má dělat. Používej slang (piko, fízl, lajna, šleh, matroš, na šrot). Odpověz česky.`;
+                try {
+                    elements.modalContent.innerText = await callGeminiAPI(prompt);
+                    addLogEntry('Dealer poslal zprávu.', 'ai');
+                } catch (error) {
+                    elements.modalContent.innerText = `Chyba: ${error.message}. Tep máš jak po trojité lajně, dej si pauzu, nebo tě klepne. Doporučení: nalej se colou a nechoď ven.`;
+                    addLogEntry('Spojení s dealerem selhalo.', 'error');
+                } finally {
+                    elements.modalLoader.classList.add('hidden');
+                }
+            }
+            
+            async function getSubjectProfile() {
+                addLogEntry('Vytahuju info o smažce...', 'profile');
+                const subjectName = elements.subjectName.textContent;
+                showModal(`KDO JE TEN SMAŽKA: ${subjectName.toUpperCase()}`);
+                const prompt = `Jsi AI, která má přístup k policejním databázím a pouličním drbům. Vytvoř krátký, fiktivní a vtipný profil pro feťáka s přezdívkou '${subjectName}'.
+                Zahrň tyto body v odstavcích a použij drsný, pouliční slang:
+                - Původ: (např. uliční varna v Žižkově, laboratoř na kolejích, vypadl z náklaďáku s ředidlem)
+                - Klíčové schopnosti: (např. pozná feťáka na 200 metrů, umí uvařit piko z projímadla, dokáže spát ve stoje)
+                - Známé slabiny: (např. bez dávky nevstane z postele, prodal by vlastní matku za gram, bojí se holubů)
+                Udržuj tón jako tajná zpráva pro fízly, ale s humorem. Odpověz česky.`;
+                try {
+                    const profileText = await callGeminiAPI(prompt);
+                    elements.modalContent.innerHTML = profileText.replace(/\n/g, '<br><br>');
+                    addLogEntry('Profil smažky načten.', 'profile');
+                } catch (error) {
+                    elements.modalContent.innerText = `Chyba: ${error.message}. Víme jen, že jeho původ je uliční varna v Žižkově. Jeho hlavní schopnost je, že pozná feťáka na 200 metrů. Slabina? Bez dávky nevstane z postele.`;
+                    addLogEntry('Nepodařilo se najít info.', 'error');
+                } finally {
+                    elements.modalLoader.classList.add('hidden');
+                }
+            }
+
+            elements.scanButton.addEventListener('click', runScanSequence);
+            elements.aiAnalysisButton.addEventListener('click', getThreatAnalysis);
+            elements.profileButton.addEventListener('click', getSubjectProfile);
+            elements.modalCloseButton.addEventListener('click', hideModal);
+            elements.aiModal.addEventListener('click', (e) => { if(e.target === elements.aiModal) hideModal(); });
+
+            function init() {
+                createBlips();
+                changeSubject();
+                addLogEntry('Radar nastartovanej, systém sjetej.', 'info');
+                setInterval(createBlips, 5000);
+                setInterval(updateThreatLevel, 8000);
+            }
+            init();
+        });
+    </script>
+</body>
+</html>
