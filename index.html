@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Najdi smažák</title>
   <meta name="theme-color" content="#0a192f" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -12,13 +12,13 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="bg-gray-900 min-h-screen p-4 pt-[calc(var(--safe-area-top)+1rem)] pb-[calc(var(--safe-area-bottom)+1rem)]">
-  <div class="max-w-md mx-auto flex flex-col space-y-6">
+  <div class="max-w-md mx-auto flex flex-col space-y-6 pt-14">
     <h1 class="font-orbitron text-3xl text-center text-cyan-300">Najdi smažák</h1>
-    <header class="flex justify-between items-center px-2 z-10">
+    <header class="hud-bar fixed top-[calc(var(--safe-area-top)+0.4rem)] left-1/2 -translate-x-1/2 w-[min(94vw,28rem)] flex justify-between items-center px-2 z-30">
       <div id="threat-level-pill" class="threat-pill threat-low text-black font-bold text-xs md:text-sm py-1.5 px-4 rounded-full font-orbitron text-center">Na pohodu, jen trošku sjetý</div>
     </header>
     <div class="relative w-full aspect-square flex items-center justify-center my-4">
